@@ -165,6 +165,7 @@ impl HuffChild {
 }
 
 // Priority Queue -- PrioQueue
+#[derive(Debug,Clone,PartialEq)]
 pub struct PrioQueue {
     size: usize,
     count: usize,
@@ -209,10 +210,10 @@ impl PrioQueue {
          if self.size != 0 {
              // Loop through each item to verify if the given one is a match
              *i = 0 as usize;
-             while *i < self.size && !self.q.get(i.clone()).unwrap().is_match(code) {
+             while *i < self.size && !self.q[*i].is_match(code) {
                  *i += 1;
              }
-             i.clone() < self.size
+             *i < self.size
          }
          else {
              false
@@ -236,8 +237,8 @@ impl PrioQueue {
          }
          else {
              self.q[idx].push();
-             self.check(idx);
          }
+         self.check(idx);
          self.count += 1;
      }
 
@@ -324,9 +325,9 @@ impl PrioQueue {
     /// Return(s):
     ///     - ret (PrioItem) -- Info goes here.
     pub fn pop(&mut self) -> PrioItem {
-        self.size -= 1;
         self.count -= self.q[self.size - 1].prio() as usize;
-        self.q.remove(self.size - 1)
+        self.size -= 1;
+        self.q.remove(self.size)
     }
 
     /// Function: remove
@@ -359,9 +360,27 @@ impl PrioQueue {
     pub fn cnt(&self) -> usize {
         self.count
     }
+
+    /// Function: sequence
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (String) -- Info goes here.
+    pub fn sequence(&self) -> String {
+        let mut seq = String::from("");
+        let mut idx = 0;
+        while idx < self.size {
+            seq += self.q[idx].code.as_str();
+            idx += 1;
+        }
+        seq.to_owned()
+    }
 }
 
 // Priority Item -- PrioItem
+#[derive(Debug,Clone,PartialEq)]
 pub struct PrioItem {
     code: String,
     priority: u8
@@ -377,7 +396,7 @@ impl PrioItem {
     /// Return(s):
     ///     - ret (Self) -- Info goes here.
     pub fn new(code: &str) -> Self {
-        PrioItem { code: code.to_owned(), priority: 0 }
+        PrioItem { code: code.to_owned(), priority: 1 }
     }
 
     /// Function: push

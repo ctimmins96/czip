@@ -15,7 +15,19 @@ mod huff;
 
 //-- Main
 fn main() {
-    println!("Hello, world!");
+    use crate::huff::enc_structs::{PrioItem, PrioQueue};
+    let mut q = PrioQueue::new();
+    q.push("A");
+    q.push("A");
+    q.push("B");
+    q.push("C");
+    q.push("C");
+    q.push("C");
+    println!("Current Queue: {}", q.sequence());
+    println!("Current Count: {}", q.cnt());
+    let rm = q.pop();
+    println!("Current Queue: {}", q.sequence());
+    println!("Current Count: {}", q.cnt());
 }
 
 //-- Test
@@ -53,11 +65,11 @@ mod tests {
                 let mut p = PrioItem::new("A");
                 assert!(p.is_match("A"));
                 assert!(!p.is_match("a"));
-                assert!(p.prio() == 0);
-                p.push();
                 assert!(p.prio() == 1);
+                p.push();
+                assert!(p.prio() == 2);
                 p.pop();
-                assert!(p.prio() == 0);
+                assert!(p.prio() == 1);
             }
 
             #[test]
@@ -71,23 +83,25 @@ mod tests {
                 assert!(q.size() == 1);
                 assert!(q.has("A", &mut i));
                 assert!(i == 0);
-                assert!(q.peek("A") == 0);
+                assert!(q.peek("A") == 1);
                 q.push("A");
                 q.push("B");
-                assert!(q.peek("A") == 1);
+                assert!(q.peek("A") == 2);
                 assert!(q.size() == 2);
                 q.push("C");
                 q.push("C");
                 assert!(q.size() == 3);
                 assert!(q.has("C", &mut i));
-                assert!(q.peek("C") == 1);
-                assert!(i == 2);
+                assert!(q.peek("C") == 2);
+                assert!(i == 1);
                 q.push("C");
                 assert!(q.has("C", &mut i));
-                assert!(q.peek("C") == 2);
+                assert!(q.peek("C") == 3);
                 assert!(i == 2);
                 assert!(q.cnt() == 6);
                 let rm = q.pop();
+                assert!(rm.is_match("C"));
+                assert!(rm.prio() == 3);
                 assert!(!q.has("C", &mut i));
                 assert!(q.size() == 2);
                 assert!(q.cnt() == 3);
