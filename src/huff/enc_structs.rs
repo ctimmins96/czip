@@ -10,9 +10,24 @@
 use std::panic;
 
 //-- Functions
+/// Function: rank_of
+///
+/// Argument(s):
+///     - idx (usize) -- Info goes here.
+///
+/// Return(s):
+///     - ret (usize) -- Info goes here.
+pub fn rank_of(idx: usize) -> usize {
+    let mut r: usize = 0;
+    let mut c_idx: usize = 0;
+    while idx > c_idx {
+        r += 1;
+        c_idx = 2*c_idx + 2;
+    }
+    r
+}
 
 //-- Structs / Implementations / Enums / Traits
-
 
 // Huffman Encoding Table -- Table
 #[derive(Debug)]
@@ -103,14 +118,289 @@ impl Table {
 }
 
 // Huffman Tree -- HuffTree
+#[derive(Debug,Clone,PartialEq)]
 pub struct HuffTree {
     children: Vec<HuffChild>
 }
 
 impl HuffTree {
+    /// Function: new
+    ///
+    /// Argument(s):
+    ///     - None
+    ///
+    /// Return(s):
+    ///     - ret (Self) -- Info goes here.
+    pub fn new() -> Self {
+        let children: Vec<HuffChild> = Vec::new();
+        Self { children }
+    }
+
+    /// Function: push
+    ///
+    /// Argument(s):
+    ///     - Referenced-Mutable self -- Info goes here.
+    ///     - c (HuffChild) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (None) -- Info goes here.
+    pub fn push(&mut self, c: HuffChild) {
+        self.children.push(c);
+        self.heapify();
+    }
+
+    /// Function: child_left
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///     - idx:usize (Placeholder) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (usize) -- Info goes here.
+    pub fn child_left(&self, idx:usize) -> usize {
+        if (2*idx + 1) < self.children.len() {
+            2*idx + 1
+        }
+        else {
+            0
+        }
+    }
+
+    /// Function: child_right
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///     - idx:usize (Placeholder) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (usize) -- Info goes here.
+    pub fn child_right(&self, idx:usize) -> usize {
+        if (2*idx + 2) < self.children.len() {
+            2*idx + 2
+        }
+        else {
+            0
+        }
+    }
+
+    /// Function: parent
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///     - idx (usize) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (Option<usize>) -- Info goes here.
+    pub fn parent(&self, idx: usize) -> Option<usize> {
+        if idx == 0 { Option::None }
+        else {
+            Option::Some(((idx as f32) / 2.0).floor() as usize)
+        }
+    }
+
+    /// Function: rank
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (usize) -- Info goes here.
+    pub fn rank(&self) -> usize {
+        let mut rnk: usize = 0;
+        let mut idx: usize = self.child_left(0 as usize);
+        while idx > 0 {
+            rnk += 1;
+            idx = self.child_left(idx);
+        }
+        rnk
+    }
+
+    /// Function: fluff
+    ///
+    /// Argument(s):
+    ///     - Referenced-Mutable self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (None) -- Info goes here.
+    pub fn fluff(&mut self) {
+        // Pad the vector to the next rank
+        let rank = self.rank();
+        let mut idx = 0;
+        while self.child_left(idx) > 0 {
+            idx = self.child_left(idx);
+        }
+        let start = idx;
+        while self.children.len() < (start + ((2.0_f32).powi(rank as i32)) as usize) {
+            self.children.push(HuffChild::null());
+        }
+    }
+
+    /// Function: prune
+    ///
+    /// Argument(s):
+    ///     - Referenced-Mutable self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (None) -- Info goes here.
+    pub fn prune(&mut self) {
+        // Assuming that the array is already sorted
+        if self.children.len() > 1 {
+            // Start at end of the array and work back by powers of 2 until we find a HuffChild
+            // that is not null 
+            while self.children[self.children.len() - 1].code() == Option::None {
+                self.children.pop();
+            }
+        }
+    }
+
+    /// Function: heapify
+    ///
+    /// Argument(s):
+    ///     - Referenced-Mutable self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (None) -- Info goes here.
+    pub fn heapify(&mut self) {
+        // -- Knowing that the element is inserted at the end-ish, check that it belongs in this
+        // rank 
+        // ^WRONG ---- ASSUME NOTHING
+        //
+        // -- Check all elements, make sure that their respective weight puts them on the correct
+        // level, do this by starting at the end of the vector and comparing them to their parent
+        // and to other members of their same rank.
+        if self.children.len() > 1 {
+            // Edge-Case: Check if there is only 2 elements
+            if self.children.len() == 2 {
+                self.children.push(HuffChild::empty(self.sum_of(0)));
+                self.swap(0,1);
+                self.swap(0,2);
+            }
+            else {
+                // Determine what rank and where in the rank the end of the array is.
+                let r = self.rank();
+
+                // Check the item at the end and see what rank the new item can fit into
+                let mut n_idx = self.children.len() - 1;
+                let c_ref = self.children[n_idx].clone();
+                let mut ranks: Vec<usize> = Vec::new();
+                for i in 0..n_idx {
+                    let cmp: f32 = (self.children[i].w() as f32) / (c_ref.w() as f32);
+                    if cmp > 0.5 && cmp < 2.0 {
+                        if !ranks.contains(&rank_of(i.clone())) {
+                            ranks.push(rank_of(i.clone()));
+                        }
+                    }
+                }
+
+                // Ranks found, now we see which side makes the most sense to insert on.
+                // Check viable endpoints
+                let mut s_idx = 0;
+                let mut term = false;
+                while !term {
+                    if self.child_left(s_idx) > 0 && self.child_right(s_idx) > 0 {
+                        // It has both children
+                        // Check to see which direction has a greater weight
+                        if self.children[self.child_left(s_idx)].w() >= self.children[self.child_right(s_idx)].w() {
+                            // Left side has a higher weight than the right
+                            // (also default case when =)
+                            // Make sure the right path is valid
+                            if self.children[self.child_right(s_idx)].code().is_none() {
+                                // Right child is a valid path
+                                s_idx = self.child_right(s_idx);
+                            }
+                        }
+                        else {
+                            // Right side has a higher weight than the right
+                            // Make sure left path is valid
+                            if self.children[self.child_left(s_idx)].code().is_none() {
+                                // Left child is a valid path
+                                s_idx = self.child_left(s_idx);
+                            }
+                        }
+                    }
+                    else if self.child_left(s_idx) > 0 && self.child_right(s_idx) == 0 {
+                        // It has only the left child
+                    }
+                    else if self.child_left(s_idx) == 0 && self.child_right(s_idx) > 0 {
+                        // It has only the right child
+                    }
+                    else {
+                        // It has no children
+                    }
+                }
+                  
+                // If no viable endpoints persist, bubble down then heapify
+            }
+        }
+    }
+
+    /// Function: swap
+    ///
+    /// Argument(s):
+    ///     - Referenced-Mutable self -- Info goes here.
+    ///     - i1 (usize) -- Info goes here.
+    ///     - i2 (usize) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (None) -- Info goes here.
+    pub fn swap(&mut self, i1: usize, i2: usize) {
+        self.children.swap(i1, i2);
+    }
+
+    /// Function: sum_of
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///     - idx (usize) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (usize) -- Info goes here.
+    pub fn sum_of(&self, idx: usize) -> usize {
+        let mut sum = self.children[idx].w();
+        if self.child_left(idx) > 0 {
+            sum += self.sum_of(self.child_left(idx));
+        }
+        if self.child_right(idx) > 0 {
+            sum += self.sum_of(self.child_right(idx));
+        }
+        sum
+    }
+
+    /// Function: as_str
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (str) -- Info goes here.
+    pub fn as_str(&self) -> String {
+        let mut ret = String::from("");
+        let mut r = 0;
+        for i in 0..self.children.len() {
+            if r != rank_of(i) {
+                ret.push('\n');
+                r = rank_of(i);
+            }
+            ret.push('\"');
+            if self.children[i].code().is_some() {
+                for c in self.children[i].code().unwrap().chars() {
+                    ret.push(c);
+                }
+            }
+            else {
+                for c in "null".chars() {
+                    ret.push(c);
+                }
+            }
+            ret.push('\"');
+            ret.push(' ');
+        }
+        ret.clone()
+    }
 }
 
 // Huffman Tree Child -- HuffChild
+#[derive(Debug,Clone,PartialEq)]
 pub struct HuffChild {
     value: Option<String>,
     weight: usize
@@ -129,6 +419,17 @@ impl HuffChild {
         Self { value: Option::None, weight: 0 }
     }
 
+    /// Function: empty
+    ///
+    /// Argument(s):
+    ///     - wght (usize) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (Self) -- Info goes here.
+    pub fn empty(wght: usize) -> Self {
+        Self { value: Option::None, weight: wght }
+    }
+
     /// Function: new
     ///
     /// Argument(s):
@@ -139,6 +440,18 @@ impl HuffChild {
     ///     - ret (Self) -- Info goes here.
     pub fn new(value: String, wght: usize) -> Self {
         Self { value: Option::Some(value), weight: wght }
+    }
+
+    /// Function: set
+    ///
+    /// Argument(s):
+    ///     - Referenced-Mutable self -- Info goes here.
+    ///     - n_weight (usize) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (None) -- Info goes here.
+    pub fn set(&mut self, n_weight: usize) {
+        self.weight = n_weight;
     }
 
     /// Function: val
@@ -431,7 +744,6 @@ impl PrioItem {
     pub fn prio(&self) -> u8 {
         self.priority.clone()
     }
-
 
     /// Function: match
     ///

@@ -15,19 +15,18 @@ mod huff;
 
 //-- Main
 fn main() {
-    use crate::huff::enc_structs::{PrioItem, PrioQueue};
-    let mut q = PrioQueue::new();
-    q.push("A");
-    q.push("A");
-    q.push("B");
-    q.push("C");
-    q.push("C");
-    q.push("C");
-    println!("Current Queue: {}", q.sequence());
-    println!("Current Count: {}", q.cnt());
-    let rm = q.pop();
-    println!("Current Queue: {}", q.sequence());
-    println!("Current Count: {}", q.cnt());
+    main1();
+}
+
+fn main1() {
+    use crate::huff::enc_structs::{HuffChild, HuffTree};
+    println!("Pushing Items...");
+    let mut tree = HuffTree::new();
+    tree.push(HuffChild::new(String::from("A"), 12));
+    println!("\n\nDebug Tree: {:?}", tree);
+    tree.push(HuffChild::new(String::from("B"), 11));
+    println!("Current Tree\n{:?}", tree.as_str());
+    println!("\n\nDebug Tree: {:?}", tree);
 }
 
 //-- Test
@@ -35,7 +34,7 @@ fn main() {
 mod tests {
     mod huff {
         mod encoding {
-            use crate::huff::enc_structs::{Table, PrioItem, PrioQueue};
+            use crate::huff::enc_structs::{Table, PrioItem, PrioQueue, HuffChild, HuffTree};
 
             #[test]
             fn test_tree() {
@@ -122,6 +121,36 @@ mod tests {
                 let mut q = PrioQueue::new();
                 q.push("A");
                 q.peek("B");
+            }
+
+            #[test]
+            fn test_huff_child() {
+                // Break Stuff
+                //
+                // -- Null Child
+                let n = HuffChild::null();
+                assert!(n.w() == 0);
+                assert!(n.code() == Option::None);
+
+                // -- Empty Child
+                let e = HuffChild::empty(12);
+                assert!(e.w() == 12);
+                assert!(e.code() == Option::None);
+
+                // -- New Child
+                let h = HuffChild::new(String::from("A"), 10);
+                assert!(h.code().unwrap() == String::from("A"));
+                assert!(h.w() == 10);
+            }
+
+            #[test]
+            fn test_huff_tree() {
+                // Break Stuff
+                let mut t = HuffTree::new();
+
+                t.push(HuffChild::new(String::from("A"), 12));
+                t.push(HuffChild::new(String::from("B"), 11));
+                assert!(t.as_str().eq("\"null\"\n\"A\" \"B\""));
             }
         }
     }
