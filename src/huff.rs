@@ -10,7 +10,7 @@ pub mod string_decoding;
 
 //-- External Imports
 use self::enc_structs::tree::{HuffTree, HuffChild};
-use self::enc_structs::queue::{PrioQueue, PrioItem};
+use self::enc_structs::queue::PrioQueue;
 use self::enc_structs::table::Table;
 use self::enc_structs::byte_string::ByteString;
 
@@ -70,7 +70,7 @@ pub fn compress(mut payload: String, check_flag: bool, compression_ratio_min: f3
     }
     // With the compression complete,
     let res = outp.as_utf8();
-    let ratio = ((outp.size() as f32) / (size as f32));
+    let ratio = (outp.size() as f32) / (size as f32);
     CompressionResult {
         payload: res,
         ratio,
@@ -85,7 +85,16 @@ pub fn compress(mut payload: String, check_flag: bool, compression_ratio_min: f3
 ///
 /// Return(s):
 ///     - ret (String) -- Info goes here.
-pub fn decompress(payload: CompressionResult) -> String {
+pub fn decompress(compressed: CompressionResult) -> String {
+    let mut payload = compressed.payload.bytes();
+    let mut c_wrap = payload.next();
+    let mut outp = String::new();
+    while c_wrap.is_some() {
+        let c_byte = c_wrap.unwrap();
+        c_wrap = payload.next();
+    }
+
+    outp
 }
 
 //-- Structs / Implementations / Enums / Traits

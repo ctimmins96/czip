@@ -13,6 +13,13 @@
 use super::tree::HuffTree;
 
 //-- Structs / Implementations / Enums / Traits
+// Translation Direction Enumeration
+#[derive(PartialEq, Eq)]
+pub enum Translation {
+    Forward,
+    Backward
+}
+
 // Huffman Encoding Table -- Table
 #[derive(Debug)]
 pub struct Table {
@@ -75,10 +82,10 @@ impl Table {
         if self.keys.contains(&(key.to_owned())) {
             // Find the key index now that we know it exists.
             let mut idx = 0;
-            let mut is_found = self.keys.get(idx).unwrap().to_owned() == key.clone().to_owned();
+            let mut is_found = self.keys.get(idx).unwrap().to_owned() == key.to_owned();
             while idx < self.size && !is_found {
                 idx += 1;
-                is_found = self.keys.get(idx).unwrap().to_owned() == key.clone().to_owned();
+                is_found = self.keys.get(idx).unwrap().to_owned() == key.to_owned();
             }
             self.codes.get(idx).unwrap().as_str()
         }
@@ -108,10 +115,31 @@ impl Table {
     /// Return(s):
     ///     - ret (Self) -- Info goes here.
     pub fn from_tree(tree: HuffTree) -> Self {
-        let keys: Vec<String> = tree.tokens();
-        let codes: Vec<String> = tree.codes();
-        let size: usize = keys.len();
-        Self { keys, codes, size }
+        Self::from_tree_dir(tree, Translation::Forward)
+    }
+
+    /// Function: from_tree_dir
+    ///
+    /// Argument(s):
+    ///     - tree (HuffTree) -- Info goes here.
+    ///     - translation (bool) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (Self) -- Info goes here.
+    pub fn from_tree_dir(tree: HuffTree, trsl: Translation) -> Self {
+        if trsl == Translation::Forward {
+            let keys: Vec<String> = tree.tokens();
+            let codes: Vec<String> = tree.codes();
+            let size: usize = keys.len();
+            Self { keys, codes, size }
+        }
+        else {
+            let keys: Vec<String> = tree.codes();
+            let codes: Vec<String> = tree.tokens();
+            let size: usize = keys.len();
+            Self { keys, codes, size }
+        }
+
     }
 
     /// Function: as_str
