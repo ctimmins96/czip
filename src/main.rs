@@ -15,18 +15,33 @@ mod huff;
 
 //-- Main
 fn main() {
-    main1();
+    main2();
 }
 
 fn main1() {
-    use crate::huff::enc_structs::{HuffChild, HuffTree};
+    use crate::huff::enc_structs::tree::{HuffChild, HuffTree};
     println!("Pushing Items...");
     let mut tree = HuffTree::new();
     tree.push(HuffChild::new(String::from("A"), 12));
-    println!("\n\nDebug Tree: {:?}", tree);
+    tree.print();
     tree.push(HuffChild::new(String::from("B"), 11));
-    println!("Current Tree\n{:?}", tree.as_str());
-    println!("\n\nDebug Tree: {:?}", tree);
+    tree.print();
+    tree.push(HuffChild::new(String::from("C"), 1));
+    tree.print();
+    tree.push(HuffChild::new(String::from("D"), 2));
+    tree.print();
+}
+
+fn main2() {
+    use crate::huff::enc_structs::tree::{HuffChild, HuffTree};
+    println!("Pushing Items...");
+    let mut tree = HuffTree::new();
+    tree.push(HuffChild::new(String::from("A"), 36));
+    tree.push(HuffChild::new(String::from("B"), 23));
+    tree.push(HuffChild::new(String::from("C"), 13));
+    tree.push(HuffChild::new(String::from("D"), 10));
+    tree.push(HuffChild::new(String::from("E"), 10));
+    tree.print();
 }
 
 //-- Test
@@ -34,7 +49,10 @@ fn main1() {
 mod tests {
     mod huff {
         mod encoding {
-            use crate::huff::enc_structs::{Table, PrioItem, PrioQueue, HuffChild, HuffTree};
+            use crate::huff::enc_structs::tree::{HuffChild, HuffTree};
+            use crate::huff::enc_structs::table::Table;
+            use crate::huff::enc_structs::queue::{PrioItem, PrioQueue};
+            use crate::huff::enc_structs::byte_string::ByteString;
 
             #[test]
             fn test_tree() {
@@ -150,8 +168,60 @@ mod tests {
 
                 t.push(HuffChild::new(String::from("A"), 12));
                 t.push(HuffChild::new(String::from("B"), 11));
-                assert!(t.as_str().eq("\"null\"\n\"A\" \"B\""));
+                t.push(HuffChild::new(String::from("C"), 1));
+                assert!(t.has_token("A"));
+                assert!(t.has_token("B"));
+                assert!(t.has_token("C"));
+                assert!(t.code("A").unwrap() == 1);
+                assert!(t.code_str("A").unwrap() == "0");
+                assert!(t.code("B").unwrap() == 5);
+                assert!(t.code_str("B").unwrap() == "10");
+                assert!(t.code("C").unwrap() == 6);
+                assert!(t.code_str("C").unwrap() == "11");
+                assert!(t.code("D").is_none());
             }
+
+            #[test]
+            fn test_byte_string() {
+                // Break Stuff
+                let mut b = ByteString::new();
+                b.push(String::from("001"));
+                b.push(String::from("101"));
+                b.push(String::from("10"));
+                b.push(String::from("00111"));
+                b.push(String::from("001"));
+                assert!(b.as_bits() == String::from("0011011000111001"));
+                assert!(b.as_utf8() == String::from("69"));
+
+                let mut s = b.clone();
+                s.push(String::from("001011"));
+                assert!(s.as_bits() == "0011011000111001001011");
+                println!("Payload: {:}", s.as_utf8());
+                assert!(s.as_utf8() == "69,");
+                s.push(String::from("11"));
+                println!("Payload: {:}", s.as_utf8());
+                assert!(s.as_utf8() == "69/");
+            }
+        }
+        use crate::huff::{compress, CompressionResult};
+        use std::time::Instant;
+
+        #[test]
+        fn compress_test() {
+            // Break Stuff
+            let test = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod 
+                tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis 
+                nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis 
+                aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat 
+                nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
+                officia deserunt mollit anim id est laborum.";
+            let now = Instant::now();
+            let cmp = compress(String::from(test), false, 0.67);
+            let elapsed = now.elapsed().as_micros();
+            println!("Time elapsed for compression of {} characters: {} us", test.len(), elapsed);
+            println!("Compressed Length: {}", cmp.payload.len());
+            println!("Compressed Payload: {}", cmp.payload);
+            assert!(cmp.ratio < 0.70);
         }
     }
 }
