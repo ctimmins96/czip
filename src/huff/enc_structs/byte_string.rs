@@ -16,6 +16,7 @@
 #[derive(Debug,Clone,PartialEq)]
 pub struct ByteString {
     codes: Vec<u8>,
+    index: usize, 
     temp: String
 }
 
@@ -29,8 +30,9 @@ impl ByteString {
     ///     - ret (Self) -- Info goes here.
     pub fn new() -> Self {
         let codes: Vec<u8> = Vec::new();
+        let index: usize = 0;
         let temp = String::new();
-        Self { codes, temp }
+        Self { codes, index, temp }
     }
 
     /// Function: push
@@ -82,6 +84,26 @@ impl ByteString {
         outp
     }
 
+    /// Function: temp_bits
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (u8) -- Info goes here.
+    fn temp_bits(&self) -> u8 {
+        // Do a thing
+        let mut tmp: u8 = 0;
+        let tmp_size = self.temp.len();
+        let mut s_tmp = self.temp.clone();
+        for i in 0..self.temp.len() {
+            tmp = tmp << 1;
+            if s_tmp.remove(0) == '1' { tmp += 1; }
+        }
+        tmp = tmp << (8 - (tmp_size));
+        tmp
+    }
+
     /// Function: as_utf8
     ///
     /// Argument(s):
@@ -98,14 +120,7 @@ impl ByteString {
             }
         }
         if self.temp.len() > 0 {
-            let mut tmp: u8 = 0;
-            let tmp_size = self.temp.len();
-            let mut s_tmp = self.temp.clone();
-            for i in 0..self.temp.len() {
-                tmp = tmp << 1;
-                if s_tmp.remove(0) == '1' { tmp += 1; }
-            }
-            tmp = tmp << (8 - (tmp_size));
+            let tmp = self.temp_bits();
             outp.push(tmp.escape_ascii().to_string().remove(0));
         }
         outp
@@ -124,6 +139,35 @@ impl ByteString {
         }
         else {
             self.codes.len() + 1
+        }
+    }
+}
+
+impl Iterator for ByteString {
+    type Item = u8;
+
+    /// Function: next
+    ///
+    /// Argument(s):
+    ///     - Referenced-Mutable self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (Option<Self::Item>) -- Info goes here.
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.codes.len() {
+            // Get the represented index from codes
+            let c_idx = self.index.clone();
+            self.index += 1;
+            Option::Some(self.codes[c_idx].clone())
+        }
+        else if self.index == self.codes.len() {
+            // Decode the item in temp
+            self.index += 1;
+            Option::Some(self.temp_bits())
+        }
+        else {
+            self.index = 0;
+            Option::None
         }
     }
 }

@@ -15,7 +15,7 @@ mod huff;
 
 //-- Main
 fn main() {
-    main2();
+    main3();
 }
 
 fn main1() {
@@ -42,6 +42,26 @@ fn main2() {
     tree.push(HuffChild::new(String::from("D"), 10));
     tree.push(HuffChild::new(String::from("E"), 10));
     tree.print();
+}
+
+fn main3() {
+    use crate::huff::{compress, CompressionResult};
+    use crate::huff::enc_structs::table::Table;
+    let test = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+    let cmp: CompressionResult = compress(String::from(test), false, 0.67);
+    let mut tab: Table = cmp.table.clone();
+    tab.flip();
+    tab.print();
+    let mut p = cmp.payload.bytes();
+    let mut tmp = String::new();
+    let c_byte = p.next().unwrap();
+    let mut mask: u8 = 128;
+    for i in 0..5 {
+        if (c_byte & mask) > 0 { tmp.push('1'); }
+        else { tmp.push('0'); }
+        mask = mask >> 1;
+    }
+    println!("First character: {:}", tmp);
 }
 
 //-- Test
@@ -201,27 +221,119 @@ mod tests {
                 s.push(String::from("11"));
                 println!("Payload: {:}", s.as_utf8());
                 assert!(s.as_utf8() == "69/");
+
+                let s_str = s.as_utf8();
+                let mut tmp = String::new();
+                let mut parser = s_str.bytes();
+                let mut c_wrap = parser.next();
+                while c_wrap.is_some() {
+                    let c_byte = c_wrap.unwrap();
+                    let mut mask: u8 = 128;
+                    while mask > 0 {
+                        if (mask & c_byte) > 0 { tmp.push('1'); }
+                        else { tmp.push('0'); }
+                        mask = mask >> 1;
+                    }
+                    c_wrap = parser.next();
+                }
+                assert!(tmp == "001101100011100100101111");
+            }
+
+            #[test]
+            fn test_byte_string_encoding() {
+                // Break Stuff
+                let mut s = ByteString::new();
+                s.push(String::from("001"));
+                s.push(String::from("101"));
+                s.push(String::from("10"));
+                s.push(String::from("00111"));
+                s.push(String::from("001"));
+                s.push(String::from("001011"));
+                s.push(String::from("11"));
+
+                let s_str = s.as_utf8();
+                let mut tmp = String::new();
+                let mut parser = s_str.bytes();
+                let mut c_wrap = parser.next();
+                while c_wrap.is_some() {
+                    let c_byte = c_wrap.unwrap();
+                    let mut mask: u8 = 128;
+                    while mask > 0 {
+                        if (mask & c_byte) > 0 { tmp.push('1'); }
+                        else { tmp.push('0'); }
+                        mask = mask >> 1;
+                    }
+                    c_wrap = parser.next();
+                }
+                assert!(tmp == "001101100011100100101111");
+
+                tmp = String::new();
+                parser = s_str.bytes();
+                c_wrap = parser.next();
+                while c_wrap.is_some() {
+                    let c_byte = c_wrap.unwrap();
+                    let mut mask: u8 = 128;
+                    let mut buffer: u8 = 0;
+                    while mask > 0 {
+                        if (mask & c_byte) > 0 { buffer += mask; }
+                        mask = mask >> 1;
+                    }
+                    tmp.push(buffer as char);
+                    c_wrap = parser.next();
+                }
+                assert!(tmp == String::from("69/"));
             }
         }
-        use crate::huff::{compress, CompressionResult};
-        use std::time::Instant;
+        use crate::huff::{compress, decompress, CompressionResult};
 
         #[test]
         fn compress_test() {
             // Break Stuff
-            let test = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod 
-                tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis 
-                nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis 
-                aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat 
-                nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui 
-                officia deserunt mollit anim id est laborum.";
-            let now = Instant::now();
-            let cmp = compress(String::from(test), false, 0.67);
-            let elapsed = now.elapsed().as_micros();
-            println!("Time elapsed for compression of {} characters: {} us", test.len(), elapsed);
-            println!("Compressed Length: {}", cmp.payload.len());
-            println!("Compressed Payload: {}", cmp.payload);
-            assert!(cmp.ratio < 0.70);
+            let test = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+            let mut cmp = compress(String::from(test), false, 0.67);
+
+            // Time to check each token
+            cmp.table.flip();
+            cmp.table.print();
+            let mut parser = cmp.payload.bytes();
+            let mut chars = test.chars();
+            let mut tmp = String::new();
+            let mut c_wrap = parser.next();
+            while c_wrap.is_some() {
+                let c_byte = c_wrap.unwrap();
+                let mut mask: u8 = 128;
+                while mask > 0 {
+                    if (mask & c_byte) > 0 {
+                        tmp.push('1');
+                    }
+                    else {
+                        tmp.push('0');
+                    }
+                    let code_check = cmp.table.translate(tmp.clone());
+                    if code_check.is_some() {
+                        // Now check the translated value is the same as the string at this index
+                        let mut c_code = code_check.unwrap();
+                        let v1 = chars.next().unwrap();
+                        let v2 = c_code.pop().unwrap();
+                        println!("Expected Character: {:} | Read: {:}", v1, v2);
+                        assert!(v1 == v2);
+                        tmp.clear();
+                    }
+                    mask = mask >> 1;
+                }
+
+                c_wrap = parser.next();
+            }
+        }
+
+        #[test]
+        fn compress_decompress_test() {
+            // Break Stuff
+            let test = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+            let mut cmp = compress(String::from(test), false, 0.67);
+            cmp.table.flip();
+            let dcmp = decompress(cmp);
+            assert!(dcmp == test);
         }
     }
 }

@@ -21,7 +21,7 @@ pub enum Translation {
 }
 
 // Huffman Encoding Table -- Table
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Table {
     /// Tree Structure; Serves as the lookup-table for the Huffman Encoding
     keys: Vec<String>,
@@ -94,6 +94,23 @@ impl Table {
         }
     }
 
+    /// Function: translate
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///     - key (String) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (Option<String>) -- Info goes here.
+    pub fn translate(&self, key: String) -> Option<String> {
+        if self.keys.contains(&key) {
+            let mut idx = 0;
+            while self.keys[idx] != key { idx += 1; }
+            Option::Some(String::from(self.codes[idx].as_str().clone()))
+        }
+        else { Option::None }
+    }
+
     /// Function: clear
     ///
     /// Argument(s):
@@ -142,16 +159,34 @@ impl Table {
 
     }
 
-    /// Function: as_str
+    /// Function: flip
+    ///
+    /// Argument(s):
+    ///     - Referenced-Mutable self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (None) -- Info goes here.
+    pub fn flip(&mut self) {
+        let size = self.codes.len();
+        for i in 0..size {
+            let tmp1 = self.keys.remove(0);
+            let tmp2 = self.codes.remove(0);
+            self.codes.push(tmp1);
+            self.keys.push(tmp2);
+        }
+    }
+
+    /// Function: print
     ///
     /// Argument(s):
     ///     - Referenced-self -- Info goes here.
     ///
     /// Return(s):
-    ///     - ret (String) -- Info goes here.
-    pub fn as_str(&self) -> String {
-        // Do a thing
-        String::new()
+    ///     - ret (None) -- Info goes here.
+    pub fn print(&self) {
+        for i in 0..self.codes.len() {
+            println!("{:} -> \"{:}\"", self.keys[i], self.codes[i]);
+        }
     }
 }
 
