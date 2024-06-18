@@ -141,6 +141,19 @@ impl ByteString {
             self.codes.len() + 1
         }
     }
+
+    /// Function: len
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (usize) -- Info goes here.
+    pub fn len(&self) -> usize {
+        let bits = self.codes.len() * 8;
+        let ret: usize = bits + self.temp.len();
+        ret
+    }
 }
 
 impl Iterator for ByteString {

@@ -188,5 +188,16 @@ impl Table {
             println!("{:} -> \"{:}\"", self.keys[i], self.codes[i]);
         }
     }
+
+    /// Function: to_str
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (String) -- Info goes here.
+    pub fn to_str(&self) -> String {
+        // Do a thing
+    }
 }
 

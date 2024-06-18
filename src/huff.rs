@@ -70,6 +70,7 @@ pub fn compress(mut payload: String, check_flag: bool, compress_ratio_min: f32) 
     // With the compression complete,
     let ratio = (outp.size() as f32) / (size as f32);
     CompressionResult {
+        bits: outp.len(),
         payload: outp,
         ratio,
         table: Table::from_tree(tree),
@@ -89,20 +90,25 @@ pub fn decompress(compressed: CompressionResult) -> String {
     let mut c_wrap = payload.next();
     let mut tmp = String::new();
     let mut outp = String::new();
+    let mut bit_count: usize = 0;
     while c_wrap.is_some() {
         // Dismantle the byte, bit by bit, to find each code / token
         let c_byte = c_wrap.unwrap();
-        let mut mask: u8 = 1;
+        let mut mask: u8 = 128;
         while mask > 0 {
-            // Check the masked value.
-            if (c_byte & mask) != 0 { tmp.push('1'); }
-            else { tmp.push('0'); }
-            // With the updated tmp, check to see if it matches any token
-            let code_check = compressed.table.translate(tmp.clone());
-            if code_check.is_some() {
-                // Put the token into the output string and clear the temp buffer
-                outp.push_str(code_check.unwrap().as_str());
-                tmp.clear();
+            // Update bit_count
+            bit_count += 1;
+            if bit_count <= compressed.bits {
+                // Check the masked value.
+                if (c_byte & mask) > 0 { tmp.push('1'); }
+                else { tmp.push('0'); }
+                // With the updated tmp, check to see if it matches any token
+                let code_check = compressed.table.translate(tmp.clone());
+                if code_check.is_some() {
+                    // Put the token into the output string and clear the temp buffer
+                    outp.push_str(code_check.unwrap().as_str());
+                    tmp.clear();
+                }
             }
             // Update mask
             mask = mask >> 1;
@@ -119,6 +125,34 @@ pub struct CompressionResult {
     pub payload: ByteString,
     pub ratio: f32,
     pub table: Table,
+    pub bits: usize,
     pub dir: Translation
+}
+
+impl CompressionResult {
+    /// Function: as_str
+    ///
+    /// Argument(s):
+    ///     - Referenced-self -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (String) -- Info goes here.
+    pub fn as_str(&self) -> String {
+        let mut outp = String::new();
+        let mut tab = self.table.to_str();
+
+        outp
+    }
+
+    /// Function: from_string
+    ///
+    /// Argument(s):
+    ///     - payload (String) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (Self) -- Info goes here.
+    pub fn from_string(payload: String) -> Self {
+        // Do a thing
+    }
 }
 

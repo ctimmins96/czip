@@ -302,6 +302,7 @@ mod tests {
             let mut chars = test.chars();
             let mut tmp = String::new();
             let mut c_wrap = parser.next();
+            let mut bit_count: usize = 0;
             while c_wrap.is_some() {
                 let c_byte = c_wrap.unwrap();
                 let mut mask: u8 = 128;
@@ -326,7 +327,6 @@ mod tests {
                     }
                     mask = mask >> 1;
                 }
-
                 c_wrap = parser.next();
             }
         }
@@ -338,6 +338,7 @@ mod tests {
             let mut cmp = compress(String::from(test), false, 0.67);
             cmp.table.flip();
             let dcmp = decompress(cmp);
+            println!("Expected: {:}\n\nDecoded: {:}", test.clone(), dcmp.clone());
             assert!(dcmp == test);
         }
     }
