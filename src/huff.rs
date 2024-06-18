@@ -65,7 +65,6 @@ pub fn compress(mut payload: String, check_flag: bool, compress_ratio_min: f32) 
     while encodable.len() > 0 {
         let token = String::from(encodable.remove(0));
         let code = tree.code_str(token.as_str()).unwrap();
-        println!("Token: {:}; Code: {:}", token, code);
         outp.push(code);
     }
     // With the compression complete,
@@ -86,13 +85,13 @@ pub fn compress(mut payload: String, check_flag: bool, compress_ratio_min: f32) 
 /// Return(s):
 ///     - ret (String) -- Info goes here.
 pub fn decompress(compressed: CompressionResult) -> String {
-    let mut payload = compressed.payload.bytes();
+    let mut payload = compressed.payload.clone();
     let mut c_wrap = payload.next();
     let mut tmp = String::new();
     let mut outp = String::new();
     while c_wrap.is_some() {
         // Dismantle the byte, bit by bit, to find each code / token
-        let mut c_byte = c_wrap.unwrap();
+        let c_byte = c_wrap.unwrap();
         let mut mask: u8 = 1;
         while mask > 0 {
             // Check the masked value.

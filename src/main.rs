@@ -46,22 +46,25 @@ fn main2() {
 
 fn main3() {
     use crate::huff::{compress, CompressionResult};
+    use crate::huff::enc_structs::byte_string::ByteString;
     use crate::huff::enc_structs::table::Table;
     let test = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
     let cmp: CompressionResult = compress(String::from(test), false, 0.67);
     let mut tab: Table = cmp.table.clone();
     tab.flip();
     tab.print();
-    let mut p = cmp.payload.bytes();
+    let mut payload: ByteString = cmp.payload.clone();
     let mut tmp = String::new();
-    let c_byte = p.next().unwrap();
     let mut mask: u8 = 128;
-    for i in 0..5 {
-        if (c_byte & mask) > 0 { tmp.push('1'); }
+    let c_byte = payload.next().unwrap();
+    let mut is_code = false;
+    while mask > 0 && !is_code {
+        if (mask & c_byte) > 0 { tmp.push('1'); }
         else { tmp.push('0'); }
+        is_code = tab.translate(tmp.clone()).is_some();
         mask = mask >> 1;
     }
-    println!("First character: {:}", tmp);
+    println!("First character: {:} => {:}", tmp, tab.translate(tmp.clone()).unwrap());
 }
 
 //-- Test
@@ -295,7 +298,7 @@ mod tests {
             // Time to check each token
             cmp.table.flip();
             cmp.table.print();
-            let mut parser = cmp.payload.bytes();
+            let mut parser = cmp.payload.clone();
             let mut chars = test.chars();
             let mut tmp = String::new();
             let mut c_wrap = parser.next();
@@ -313,10 +316,12 @@ mod tests {
                     if code_check.is_some() {
                         // Now check the translated value is the same as the string at this index
                         let mut c_code = code_check.unwrap();
-                        let v1 = chars.next().unwrap();
-                        let v2 = c_code.pop().unwrap();
-                        println!("Expected Character: {:} | Read: {:}", v1, v2);
-                        assert!(v1 == v2);
+                        let n_char = chars.next();
+                        if n_char.is_some() {
+                            let v1 = n_char.unwrap();
+                            let v2 = c_code.pop().unwrap();
+                            assert!(v1 == v2);
+                        }
                         tmp.clear();
                     }
                     mask = mask >> 1;
