@@ -152,7 +152,19 @@ impl CompressionResult {
     /// Return(s):
     ///     - ret (Self) -- Info goes here.
     pub fn from_string(payload: String) -> Self {
-        // Do a thing
+        let mut payload = ByteString::new();
+        let ratio: f32 = 1.0;
+        let bits: usize = 0;
+        let dir = Translation::Forward;
+        let mut table = Table::new();
+
+        Self {
+            payload,
+            ratio,
+            table,
+            bits,
+            dir
+        }
     }
 }
 

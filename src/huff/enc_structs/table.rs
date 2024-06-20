@@ -7,6 +7,7 @@
 //-- Submodules
 
 //-- External Imports
+use regex::Regex;
 
 //-- Functions
 
@@ -197,7 +198,29 @@ impl Table {
     /// Return(s):
     ///     - ret (String) -- Info goes here.
     pub fn to_str(&self) -> String {
-        // Do a thing
+        let mut outp = String::new();
+        for i in 0..self.codes.len() {
+            let temp = format!("|{}={}", self.keys[i].clone(), self.codes[i].clone());
+            let mut parser = temp.chars();
+            let mut c_char = parser.next();
+            while c_char.is_some() {
+                outp.push(c_char.unwrap());
+                c_char = parser.next();
+            }
+        }
+        outp
+    }
+
+    /// Function: from_str
+    ///
+    /// Argument(s):
+    ///     - payload (String) -- Info goes here.
+    ///
+    /// Return(s):
+    ///     - ret (Self) -- Info goes here.
+    pub fn from_str(payload: String) -> Self {
+        let re_forward = Regex::new(r"\|(.)=([01]*)").unwrap();
+        let re_backward = Regex::new(r"\|([01]*)=(.)").unwrap();
     }
 }
 

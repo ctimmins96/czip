@@ -286,6 +286,17 @@ mod tests {
                 }
                 assert!(tmp == String::from("69/"));
             }
+
+            #[test]
+            fn test_table() {
+                // Break Stuff
+                let mut tab = Table::new();
+                tab.push("101", "A");
+                tab.push("110", "B");
+                tab.push("111", "C");
+                tab.push("00", " ");
+                assert!(tab.to_str() == "|101=A|110=B|111=C|00= ");
+            }
         }
         use crate::huff::{compress, decompress, CompressionResult};
 
