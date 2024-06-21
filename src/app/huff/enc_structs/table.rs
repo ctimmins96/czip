@@ -5,13 +5,15 @@
 // 
 
 //-- Submodules
+use super::tree::HuffTree;
+
+//-- Standard Imports
+use std::panic;
 
 //-- External Imports
 use regex::Regex;
 
 //-- Functions
-
-use super::tree::HuffTree;
 
 //-- Structs / Implementations / Enums / Traits
 // Translation Direction Enumeration
@@ -217,10 +219,36 @@ impl Table {
     ///     - payload (String) -- Info goes here.
     ///
     /// Return(s):
-    ///     - ret (Self) -- Info goes here.
-    pub fn from_str(payload: String) -> Self {
+    ///     - ret (Self) -- Info goes here
+    pub fn from_str(payload: String) -> Result<Self, &'static str> {
         let re_forward = Regex::new(r"\|(.)=([01]*)").unwrap();
         let re_backward = Regex::new(r"\|([01]*)=(.)").unwrap();
+        let mut size: usize = 0;
+        let mut keys: Vec<String> = Vec::new();
+        let mut codes: Vec<String> = Vec::new();
+
+        if re_forward.is_match(payload.clone().as_str()) && re_backward.is_match(payload.clone().as_str()) {
+            Err("the string payload does not match any expected patterns.")
+        }
+        else if re_forward.is_match(payload.clone().as_str()) {
+            for (_, [key, code]) in re_forward.captures_iter(payload.as_str()).map(|c| c.extract()) {
+                size += 1;
+                keys.push(String::from(key));
+                codes.push(String::from(code));
+            }
+            Ok(Self { keys, codes, size })
+        }
+        else if re_backward.is_match(payload.clone().as_str()) {
+            for (_, [key, code]) in re_backward.captures_iter(payload.as_str()).map(|c| c.extract()) {
+                size += 1;
+                keys.push(String::from(key));
+                codes.push(String::from(code));
+            }
+            Ok(Self { keys, codes, size })
+        }
+        else {
+            Err("the string payload does not match any expected patterns.")
+        }
     }
 }
 

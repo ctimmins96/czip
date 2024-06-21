@@ -1,10 +1,12 @@
-// Module: Decode
+// Module: app
 // 
 // Description:
-//     Huffman Decoder Module
+//     Application Module
 // 
 
 //-- Submodules
+pub mod huff;
+pub mod file_manager;
 
 //-- External Imports
 

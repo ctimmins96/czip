@@ -5,7 +5,7 @@
 // 
 
 //-- Submodules
-mod huff;
+mod app;
 
 //-- External Imports
 
@@ -19,7 +19,7 @@ fn main() {
 }
 
 fn main1() {
-    use crate::huff::enc_structs::tree::{HuffChild, HuffTree};
+    use crate::app::huff::enc_structs::tree::{HuffChild, HuffTree};
     println!("Pushing Items...");
     let mut tree = HuffTree::new();
     tree.push(HuffChild::new(String::from("A"), 12));
@@ -33,7 +33,7 @@ fn main1() {
 }
 
 fn main2() {
-    use crate::huff::enc_structs::tree::{HuffChild, HuffTree};
+    use crate::app::huff::enc_structs::tree::{HuffChild, HuffTree};
     println!("Pushing Items...");
     let mut tree = HuffTree::new();
     tree.push(HuffChild::new(String::from("A"), 36));
@@ -45,9 +45,9 @@ fn main2() {
 }
 
 fn main3() {
-    use crate::huff::{compress, CompressionResult};
-    use crate::huff::enc_structs::byte_string::ByteString;
-    use crate::huff::enc_structs::table::Table;
+    use crate::app::huff::{compress, CompressionResult};
+    use crate::app::huff::enc_structs::byte_string::ByteString;
+    use crate::app::huff::enc_structs::table::Table;
     let test = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
     let cmp: CompressionResult = compress(String::from(test), false, 0.67);
     let mut tab: Table = cmp.table.clone();
@@ -72,10 +72,10 @@ fn main3() {
 mod tests {
     mod huff {
         mod encoding {
-            use crate::huff::enc_structs::tree::{HuffChild, HuffTree};
-            use crate::huff::enc_structs::table::Table;
-            use crate::huff::enc_structs::queue::{PrioItem, PrioQueue};
-            use crate::huff::enc_structs::byte_string::ByteString;
+            use crate::app::huff::enc_structs::tree::{HuffChild, HuffTree};
+            use crate::app::huff::enc_structs::table::Table;
+            use crate::app::huff::enc_structs::queue::{PrioItem, PrioQueue};
+            use crate::app::huff::enc_structs::byte_string::ByteString;
 
             #[test]
             fn test_tree() {
@@ -296,15 +296,26 @@ mod tests {
                 tab.push("111", "C");
                 tab.push("00", " ");
                 assert!(tab.to_str() == "|101=A|110=B|111=C|00= ");
+
+                // Test Table from String.
+                let tab2 = Table::from_str(String::from("|101=A|110=B|111=C|00= "));
+                assert!(tab.to_str() == tab2.unwrap().to_str());
+
+                // Test Table from String in reverse method.
+                let tab3 = Table::from_str(String::from("|A=101|B=110|C=111| =00"));
+                assert!(tab3.unwrap().to_str() == String::from("|A=101|B=110|C=111| =00"));
+
+                // Test the error returns of the from_str methods
+                assert!(Table::from_str(String::from("|101>A")).is_err());
             }
         }
-        use crate::huff::{compress, decompress, CompressionResult};
+        use crate::app::huff::{compress, decompress, CompressionResult};
 
         #[test]
         fn compress_test() {
             // Break Stuff
             let test = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
-            let mut cmp = compress(String::from(test), false, 0.67);
+            let mut cmp: CompressionResult = compress(String::from(test), false, 0.67);
 
             // Time to check each token
             cmp.table.flip();
@@ -313,7 +324,6 @@ mod tests {
             let mut chars = test.chars();
             let mut tmp = String::new();
             let mut c_wrap = parser.next();
-            let mut bit_count: usize = 0;
             while c_wrap.is_some() {
                 let c_byte = c_wrap.unwrap();
                 let mut mask: u8 = 128;

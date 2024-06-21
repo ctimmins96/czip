@@ -6,13 +6,14 @@
 
 //-- Submodules
 pub mod enc_structs;
-pub mod string_decoding;
 
 //-- External Imports
 use self::enc_structs::tree::{HuffTree, HuffChild};
 use self::enc_structs::queue::PrioQueue;
 use self::enc_structs::table::{Table, Translation};
 use self::enc_structs::byte_string::ByteString;
+
+use regex::Regex;
 
 //-- Functions
 /// Function: compress
@@ -138,32 +139,35 @@ impl CompressionResult {
     /// Return(s):
     ///     - ret (String) -- Info goes here.
     pub fn as_str(&self) -> String {
-        let mut outp = String::new();
-        let mut tab = self.table.to_str();
+        let tab = self.table.to_str();
+        let compressed = self.payload.as_utf8();
+        let bits = self.bits;
+        let template = format!("{tab}//{bits}//{compressed}");
 
-        outp
+        template
     }
 
     /// Function: from_string
     ///
     /// Argument(s):
-    ///     - payload (String) -- Info goes here.
+    ///     - raw (String) -- Info goes here.
     ///
     /// Return(s):
     ///     - ret (Self) -- Info goes here.
-    pub fn from_string(payload: String) -> Self {
+    pub fn from_string(raw: String) -> Result<Self, &'static str> {
         let mut payload = ByteString::new();
         let ratio: f32 = 1.0;
         let bits: usize = 0;
         let dir = Translation::Forward;
         let mut table = Table::new();
 
-        Self {
-            payload,
-            ratio,
-            table,
-            bits,
-            dir
+        let re = Regex::new(r"(.*)//(\d+)//(.*)").unwrap();
+
+        if re.is_match(raw.clone().as_str()) {
+            Ok(Self { payload, ratio, table, bits, dir })
+        }
+        else {
+            Err("Raw string input does not match expected pattern.")
         }
     }
 }
